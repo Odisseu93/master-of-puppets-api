@@ -149,6 +149,22 @@ Valida a integridade da API.
 
 ---
 
+## 📝 Registro de Logs (Pino Logger)
+
+A API utiliza a biblioteca **Pino** para registrar de forma estruturada as informações de requisições HTTP, tempo de processamento e erros do sistema:
+
+- **Logs Locais**: Todas as saídas de log são gravadas incrementalmente no arquivo `./logs/api.log` no formato JSON estruturado (a pasta é criada automaticamente se não existir).
+- **Console (Stdout)**: Os mesmos logs são enviados simultaneamente para o console, facilitando a observação em tempo real.
+- **Campos Disponíveis**:
+  - `method` e `url` (método HTTP e rota).
+  - `ip` (endereço IP de origem).
+  - `status` (código HTTP de resposta).
+  - `durationMs` (duração da execução em milissegundos).
+  - `apiKeyPrefix` (prefixo da chave usada para facilitar auditoria sem expor o segredo).
+  - `err` (objeto contendo detalhes e stacktrace de exceções capturadas nos blocos `catch`).
+
+---
+
 ## 🧪 Desenvolvimento e Testes
 
 Para garantir o funcionamento correto do código, estão disponíveis comandos de validação e testes automatizados:

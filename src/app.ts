@@ -2,6 +2,8 @@ import v from 'vkrun';
 import { authMiddleware } from './middleware/auth.middleware';
 import { startScriptExecution } from './services/executor.service';
 import { getDatabase } from './database';
+import { requestLoggerMiddleware } from './middleware/logger.middleware';
+import { logger } from './utils/logger';
 
 /**
  * Creates and configures the VkrunJS application.
@@ -11,6 +13,9 @@ export function createApp(): ReturnType<typeof v.App> {
 
   // Enable request body, query, and parameter parsing
   app.parseData();
+
+  // Enable global request logging
+  app.use(requestLoggerMiddleware);
 
   // Rate limiter middleware (30 requests per minute)
   const limiter = v.rateLimit({
@@ -52,6 +57,7 @@ export function createApp(): ReturnType<typeof v.App> {
       }));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error({ err: error, script, args }, 'Erro ao iniciar execução de script');
       res.status(400).send(JSON.stringify({ error: errorMsg }));
     }
   });
@@ -94,7 +100,7 @@ export function createApp(): ReturnType<typeof v.App> {
         finished_at: execution.finished_at
       }));
     } catch (error) {
-      console.error('Erro ao consultar execução:', error);
+      logger.error({ err: error, id }, 'Erro ao consultar status da execução');
       res.status(500).send(JSON.stringify({ error: 'Erro interno ao processar a consulta.' }));
     }
   });

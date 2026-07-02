@@ -1,6 +1,7 @@
 import v from 'vkrun';
 import crypto from 'crypto';
 import { getDatabase } from '../database';
+import { logger } from '../utils/logger';
 
 export interface AuthenticatedRequest extends v.Request {
   apiKeyInfo?: {
@@ -60,7 +61,7 @@ export async function authMiddleware(
 
     next();
   } catch (error) {
-    console.error('Authentication middleware error:', error);
+    logger.error({ err: error }, 'Authentication middleware error');
     res.setHeader('Content-Type', 'application/json');
     res.status(500).send(JSON.stringify({ error: 'Internal Server Error' }));
   }
