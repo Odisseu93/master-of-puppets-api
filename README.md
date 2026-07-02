@@ -1,4 +1,6 @@
 # Master of Puppets API (Execução de Shell Scripts via API)
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/be226fc4-991a-47df-8c7e-2ae101a974fc" />
+
 
 Esta é uma API desenvolvida com **Node.js**, **VkrunJS** e **TypeScript** cuja principal funcionalidade é executar arquivos de shell script pré-existentes na máquina host de forma segura. A autenticação é controlada por API Keys individuais persistidas em um banco SQLite e gerenciadas localmente através de uma CLI offline.
 
