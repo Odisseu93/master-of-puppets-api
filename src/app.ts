@@ -84,7 +84,7 @@ export function createApp(): ReturnType<typeof v.App> {
       let parsedArgs = [];
       try {
         parsedArgs = JSON.parse(execution.arguments);
-      } catch (e) {
+      } catch {
         parsedArgs = [];
       }
 
