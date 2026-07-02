@@ -12,7 +12,7 @@ export function requestLoggerMiddleware(
 ): void {
   const start = process.hrtime();
 
-  const ip = req.ip || (req.socket ? req.socket.remoteAddress : 'unknown');
+  const ip = (req.headers['x-forwarded-for'] as string) || (req.socket ? req.socket.remoteAddress : 'unknown');
 
   // Log incoming request
   logger.info({

@@ -179,6 +179,9 @@ npm test
 # Executar a verificação estática do Linter (ESLint)
 npm run lint
 
+# Executar a checagem estática de tipos do TypeScript sem emitir arquivos
+npm run build -- --noEmit
+
 # Formatar o código seguindo padrões de estilo (Prettier)
 npm run format
 ```
