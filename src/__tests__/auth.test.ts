@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import v from 'vkrun';
 import { Database } from 'sqlite';
-import { getDatabase } from '../database';
+import { getDatabase, closeDatabase } from '../database';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.middleware';
 
 // Use an in-memory SQLite database for testing
@@ -52,9 +52,7 @@ describe('Auth Middleware', () => {
   });
 
   afterAll(async () => {
-    if (db) {
-      await db.close();
-    }
+    await closeDatabase();
   });
 
   it('should return 401 if x-api-key header is missing', async () => {
