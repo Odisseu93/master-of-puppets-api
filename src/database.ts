@@ -26,6 +26,16 @@ export async function getDatabase(): Promise<Database> {
 }
 
 /**
+ * Closes the active database instance and resets the cache.
+ */
+export async function closeDatabase(): Promise<void> {
+  if (dbInstance) {
+    await dbInstance.close();
+    dbInstance = null;
+  }
+}
+
+/**
  * Initializes database schemas if they do not exist.
  */
 async function initDatabase(db: Database): Promise<void> {
