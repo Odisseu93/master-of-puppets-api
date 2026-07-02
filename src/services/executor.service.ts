@@ -72,11 +72,20 @@ async function runProcessInBackground(
   const db = await getDatabase();
 
   let childProcess;
-  // If shell script on Linux, explicitly execute with bash to ensure compatibility
+  const isWindows = process.platform === 'win32';
+
   if (scriptPath.endsWith('.sh')) {
-    childProcess = spawn('/bin/bash', [scriptPath, ...args]);
+    if (isWindows) {
+      childProcess = spawn('bash', [scriptPath, ...args], { shell: true });
+    } else {
+      childProcess = spawn('/bin/bash', [scriptPath, ...args]);
+    }
+  } else if (isWindows && (scriptPath.endsWith('.bat') || scriptPath.endsWith('.cmd'))) {
+    childProcess = spawn('cmd.exe', ['/c', scriptPath, ...args], { shell: true });
+  } else if (isWindows && scriptPath.endsWith('.ps1')) {
+    childProcess = spawn('powershell.exe', ['-File', scriptPath, ...args], { shell: true });
   } else {
-    childProcess = spawn(scriptPath, args);
+    childProcess = spawn(scriptPath, args, { shell: isWindows });
   }
 
   let stdoutAcc = '';
@@ -98,7 +107,10 @@ async function runProcessInBackground(
     }
   });
 
+  let hasError = false;
+
   childProcess.on('error', async (error) => {
+    hasError = true;
     const finishedAt = new Date().toISOString();
     const errorMsg = `Erro ao iniciar processo: ${error.message}\n` + stderrAcc;
     
@@ -111,6 +123,7 @@ async function runProcessInBackground(
   });
 
   childProcess.on('close', async (code) => {
+    if (hasError) return;
     const finishedAt = new Date().toISOString();
     const finalStatus = code === 0 ? 'completed' : 'failed';
 
