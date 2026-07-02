@@ -2,6 +2,7 @@
   "name": "master-of-puppets-api",
   "version": "1.0.0",
   "description": "Node + VkrunJS + TypeScript API",
+  "license": "GPL-3.0-only",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
