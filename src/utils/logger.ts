@@ -1,6 +1,7 @@
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
+import { env } from './env';
 
 const logDir = path.resolve(process.cwd(), 'logs');
 
@@ -19,7 +20,7 @@ const streams = [
 
 export const logger = pino(
   {
-    level: process.env.LOG_LEVEL || 'info',
+    level: env.LOG_LEVEL,
     timestamp: pino.stdTimeFunctions.isoTime,
   },
   pino.multistream(streams)

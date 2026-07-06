@@ -4,8 +4,9 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { getDatabase } from '../database';
 import { logger } from '../utils/logger';
+import { env } from '../utils/env';
 
-const SCRIPTS_DIR = path.resolve(process.cwd(), process.env.SCRIPTS_DIR || './host-scripts');
+const SCRIPTS_DIR = path.resolve(process.cwd(), env.SCRIPTS_DIR);
 const MAX_LOG_SIZE = 200000; // Limit logs to ~200KB to avoid excessive SQLite bloat
 
 /**

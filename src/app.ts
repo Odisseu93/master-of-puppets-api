@@ -4,6 +4,7 @@ import { startScriptExecution } from './services/executor.service';
 import { getDatabase } from './database';
 import { requestLoggerMiddleware } from './middleware/logger.middleware';
 import { logger } from './utils/logger';
+import { env } from './utils/env';
 
 /**
  * Creates and configures the VkrunJS application.
@@ -15,7 +16,7 @@ export function createApp(): ReturnType<typeof v.App> {
   app.parseData();
 
   // Enable CORS middleware
-  const corsOriginEnv = process.env.CORS_ORIGIN;
+  const corsOriginEnv = env.CORS_ORIGIN;
   const origins = corsOriginEnv
     ? corsOriginEnv.includes(',')
       ? corsOriginEnv.split(',').map(o => o.trim())
@@ -48,7 +49,7 @@ export function createApp(): ReturnType<typeof v.App> {
   // Protected route to start script execution
   app.post('/v1/executions', limiter, authMiddleware, async (req: v.Request, res: v.Response) => {
     res.setHeader('Content-Type', 'application/json');
-    
+
     const { script, arguments: args } = req.body || {};
 
     if (!script || typeof script !== 'string') {
