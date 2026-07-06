@@ -4,7 +4,7 @@ const TEST_SCRIPTS_DIR = path.resolve(__dirname, 'test-scripts');
 process.env.SCRIPTS_DIR = TEST_SCRIPTS_DIR;
 
 import fs from 'fs';
-import * as cp from 'child_process';
+import cp from 'child_process';
 import { Database } from 'sqlite';
 import { getDatabase, closeDatabase } from '../database';
 

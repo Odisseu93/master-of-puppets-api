@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { getDatabase } from '../database';
+import { logger } from '../utils/logger';
 
 const SCRIPTS_DIR = path.resolve(process.cwd(), process.env.SCRIPTS_DIR || './host-scripts');
 const MAX_LOG_SIZE = 200000; // Limit logs to ~200KB to avoid excessive SQLite bloat
@@ -114,12 +115,16 @@ async function runProcessInBackground(
     const finishedAt = new Date().toISOString();
     const errorMsg = `Erro ao iniciar processo: ${error.message}\n` + stderrAcc;
     
-    await db.run(
-      `UPDATE executions 
-       SET status = 'failed', stderr = ?, finished_at = ?
-       WHERE id = ?`,
-      [errorMsg.slice(0, MAX_LOG_SIZE), finishedAt, executionId]
-    );
+    try {
+      await db.run(
+        `UPDATE executions 
+         SET status = 'failed', stderr = ?, finished_at = ?
+         WHERE id = ?`,
+        [errorMsg.slice(0, MAX_LOG_SIZE), finishedAt, executionId]
+      );
+    } catch (dbErr) {
+      logger.warn({ dbErr, executionId }, 'Erro ao atualizar status de execução no banco (provavelmente fechado)');
+    }
   });
 
   childProcess.on('close', async (code) => {
@@ -127,11 +132,15 @@ async function runProcessInBackground(
     const finishedAt = new Date().toISOString();
     const finalStatus = code === 0 ? 'completed' : 'failed';
 
-    await db.run(
-      `UPDATE executions 
-       SET status = ?, exit_code = ?, stdout = ?, stderr = ?, finished_at = ?
-       WHERE id = ?`,
-      [finalStatus, code, stdoutAcc, stderrAcc, finishedAt, executionId]
-    );
+    try {
+      await db.run(
+        `UPDATE executions 
+         SET status = ?, exit_code = ?, stdout = ?, stderr = ?, finished_at = ?
+         WHERE id = ?`,
+        [finalStatus, code, stdoutAcc, stderrAcc, finishedAt, executionId]
+      );
+    } catch (dbErr) {
+      logger.warn({ dbErr, executionId }, 'Erro ao salvar resultado da execução no banco (provavelmente fechado)');
+    }
   });
 }
