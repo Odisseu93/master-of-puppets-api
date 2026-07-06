@@ -96,16 +96,18 @@ async function runProcessInBackground(
   childProcess.stdout.on('data', (chunk) => {
     if (stdoutAcc.length < MAX_LOG_SIZE) {
       stdoutAcc += chunk.toString();
-    } else if (!stdoutAcc.endsWith('\n[Logs truncados devido ao limite de tamanho]')) {
-      stdoutAcc += '\n[Logs truncados devido ao limite de tamanho]';
+      if (stdoutAcc.length >= MAX_LOG_SIZE) {
+        stdoutAcc = stdoutAcc.slice(0, MAX_LOG_SIZE) + '\n[Logs truncados devido ao limite de tamanho]';
+      }
     }
   });
 
   childProcess.stderr.on('data', (chunk) => {
     if (stderrAcc.length < MAX_LOG_SIZE) {
       stderrAcc += chunk.toString();
-    } else if (!stderrAcc.endsWith('\n[Logs truncados devido ao limite de tamanho]')) {
-      stderrAcc += '\n[Logs truncados devido ao limite de tamanho]';
+      if (stderrAcc.length >= MAX_LOG_SIZE) {
+        stderrAcc = stderrAcc.slice(0, MAX_LOG_SIZE) + '\n[Logs truncados devido ao limite de tamanho]';
+      }
     }
   });
 
