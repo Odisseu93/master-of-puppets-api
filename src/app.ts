@@ -14,6 +14,18 @@ export function createApp(): ReturnType<typeof v.App> {
   // Enable request body, query, and parameter parsing
   app.parseData();
 
+  // Enable CORS middleware
+  const corsOriginEnv = process.env.CORS_ORIGIN;
+  const origins = corsOriginEnv
+    ? corsOriginEnv.includes(',')
+      ? corsOriginEnv.split(',').map(o => o.trim())
+      : corsOriginEnv.trim()
+    : '*';
+
+  app.cors({
+    origin: origins,
+  });
+
   // Enable global request logging
   app.use(requestLoggerMiddleware);
 
