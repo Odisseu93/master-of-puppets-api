@@ -18,14 +18,39 @@ export function createApp(): ReturnType<typeof v.App> {
   // Enable CORS middleware
   const corsOriginEnv = env.CORS_ORIGIN;
   const origins = corsOriginEnv
-    ? corsOriginEnv.includes(',')
-      ? corsOriginEnv.split(',').map(o => o.trim())
-      : corsOriginEnv.trim()
+    ? corsOriginEnv.trim() === '*'
+      ? '*'
+      : corsOriginEnv.includes(',')
+        ? corsOriginEnv.split(',').map(o => o.trim())
+        : [corsOriginEnv.trim()]
     : '*';
 
-  app.cors({
+  if (origins !== '*') {
+    const wildcards = origins.filter(o => o.includes('*') && o !== '*');
+    if (wildcards.length > 0) {
+      app.use((req: v.Request, res: v.Response, next: v.NextFunction) => {
+        const requestOrigin = req.headers.origin;
+        if (requestOrigin && !origins.includes(requestOrigin)) {
+          for (const pattern of wildcards) {
+            const regexStr = '^' + pattern
+              .split('*')
+              .map(part => part.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&'))
+              .join('[^/]+') + '$';
+            const regex = new RegExp(regexStr, 'i');
+            if (regex.test(requestOrigin)) {
+              origins.push(requestOrigin);
+              break;
+            }
+          }
+        }
+        next();
+      });
+    }
+  }
+
+  app.use(v.cors({
     origin: origins,
-  });
+  }));
 
   // Enable global request logging
   app.use(requestLoggerMiddleware);
