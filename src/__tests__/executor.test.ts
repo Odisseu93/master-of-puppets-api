@@ -88,17 +88,17 @@ describe('Executor Service', () => {
     it('should throw an error if script path attempts directory traversal', () => {
       expect(() => {
         getSafeScriptPath('../../../etc/passwd');
-      }).toThrow('Acesso negado: directory traversal detectado.');
+      }).toThrow('Access denied: directory traversal detected.');
 
       expect(() => {
         getSafeScriptPath('/etc/passwd');
-      }).toThrow('Acesso negado: directory traversal detectado.');
+      }).toThrow('Access denied: directory traversal detected.');
     });
 
     it('should throw an error for non-existent scripts', () => {
       expect(() => {
         getSafeScriptPath('non-existent-script-xyz.sh');
-      }).toThrow('Script não encontrado');
+      }).toThrow('Script not found');
     });
 
     it('should resolve and return path for existing safe scripts', () => {
@@ -144,7 +144,7 @@ describe('Executor Service', () => {
 
       expect(finalRecord.status).toBe('completed');
       expect(finalRecord.stdout.length).toBeGreaterThan(200000);
-      expect(finalRecord.stdout).toContain('[Logs truncados devido ao limite de tamanho]');
+      expect(finalRecord.stdout).toContain('[Logs truncated due to size limit]');
     });
 
     it('should update status to failed when child process fails to spawn', async () => {
@@ -152,7 +152,7 @@ describe('Executor Service', () => {
       const finalRecord = await waitForExecution(db, executionId);
 
       expect(finalRecord.status).toBe('failed');
-      expect(finalRecord.stderr).toContain('Erro ao iniciar processo:');
+      expect(finalRecord.stderr).toContain('Failed to start process:');
       expect(finalRecord.finished_at).toBeDefined();
     });
   });
