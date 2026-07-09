@@ -37,14 +37,27 @@ npm install
 mkdir host-scripts
 ```
 
-### Variáveis de Ambiente (`.env`)
-Caso queira alterar as configurações padrão, crie um arquivo `.env` na raiz do projeto:
+### Variáveis de Ambiente e Configuração (`.env`)
+
+A aplicação gerencia e valida as variáveis de ambiente utilizando o recurso `loadEnv` e o módulo de validação de schemas do **VkrunJS**. As variáveis são validadas e tipadas no momento da inicialização da API.
+
+Para alterar as configurações padrão, crie um arquivo `.env` na raiz do projeto contendo as seguintes variáveis:
 
 ```env
 PORT=3000
 DATABASE_PATH=database.sqlite
 SCRIPTS_DIR=./host-scripts
+LOG_LEVEL=info
+CORS_ORIGIN=*
 ```
+
+| Variável | Tipo | Valor Padrão | Descrição |
+|---|---|---|---|
+| `PORT` | Número | `3000` | Porta onde o servidor HTTP ficará ouvindo. |
+| `DATABASE_PATH` | Texto | `database.sqlite` | Caminho do arquivo SQLite (use `:memory:` para banco em memória nos testes). |
+| `SCRIPTS_DIR` | Texto | `./host-scripts` | Diretório contendo os scripts de shell autorizados para execução. |
+| `LOG_LEVEL` | Texto | `info` | Nível mínimo de log do Pino Logger (`info`, `warn`, `error`, `debug`). |
+| `CORS_ORIGIN` | Texto | `*` | Origens autorizadas pelo middleware de CORS. Aceita wildcard global (`*`), origens específicas separadas por vírgula (ex: `http://localhost:3000,https://meusite.com`) ou padrões de subdomínio wildcard (ex: `https://*.amazon.com`). |
 
 ---
 

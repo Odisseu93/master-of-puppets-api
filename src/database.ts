@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import path from 'path';
+import { env } from './utils/env';
 
 let dbInstance: Database | null = null;
 
@@ -12,7 +13,7 @@ export async function getDatabase(): Promise<Database> {
     return dbInstance;
   }
 
-  const rawPath = process.env.DATABASE_PATH || 'database.sqlite';
+  const rawPath = env.DATABASE_PATH;
   const dbPath = rawPath === ':memory:' ? ':memory:' : path.resolve(process.cwd(), rawPath);
   
   dbInstance = await open({

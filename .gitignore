@@ -8,4 +8,5 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .DS_Store
-host-scripts/open_grjngo_channel.sh
+logs/
+host-scripts/

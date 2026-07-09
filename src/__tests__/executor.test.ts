@@ -4,13 +4,14 @@ const TEST_SCRIPTS_DIR = path.resolve(__dirname, 'test-scripts');
 process.env.SCRIPTS_DIR = TEST_SCRIPTS_DIR;
 
 import fs from 'fs';
-import * as cp from 'child_process';
+import cp from 'child_process';
 import { Database } from 'sqlite';
 import { getDatabase, closeDatabase } from '../database';
 
-// Require the service to guarantee env variables are set beforehand
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { getSafeScriptPath, startScriptExecution } = require('../services/executor.service');
+import { ExecutionRepository } from '../repositories/execution.repository';
+import { StartExecutionService } from '../services/start-execution.service';
+
+let startExecutionService: StartExecutionService;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function waitForExecution(db: Database, id: string, timeoutMs = 5000): Promise<any> {
@@ -70,6 +71,7 @@ describe('Executor Service', () => {
     );
 
     db = await getDatabase();
+    startExecutionService = new StartExecutionService(new ExecutionRepository(db));
   });
 
   beforeEach(async () => {
@@ -87,30 +89,30 @@ describe('Executor Service', () => {
   describe('getSafeScriptPath', () => {
     it('should throw an error if script path attempts directory traversal', () => {
       expect(() => {
-        getSafeScriptPath('../../../etc/passwd');
-      }).toThrow('Acesso negado: directory traversal detectado.');
+        startExecutionService.getSafeScriptPath('../../../etc/passwd');
+      }).toThrow('Access denied: directory traversal detected.');
 
       expect(() => {
-        getSafeScriptPath('/etc/passwd');
-      }).toThrow('Acesso negado: directory traversal detectado.');
+        startExecutionService.getSafeScriptPath('/etc/passwd');
+      }).toThrow('Access denied: directory traversal detected.');
     });
 
     it('should throw an error for non-existent scripts', () => {
       expect(() => {
-        getSafeScriptPath('non-existent-script-xyz.sh');
-      }).toThrow('Script não encontrado');
+        startExecutionService.getSafeScriptPath('non-existent-script-xyz.sh');
+      }).toThrow('Script not found');
     });
 
     it('should resolve and return path for existing safe scripts', () => {
-      const safePath = getSafeScriptPath('test-script.sh');
+      const safePath = startExecutionService.getSafeScriptPath('test-script.sh');
       const expectedPath = path.resolve(TEST_SCRIPTS_DIR, 'test-script.sh');
       expect(safePath).toBe(expectedPath);
     });
   });
 
-  describe('startScriptExecution', () => {
+  describe('startExecutionService.execute', () => {
     it('should execute a successful script and update status to completed', async () => {
-      const executionId = await startScriptExecution('success.sh', ['arg1', 'arg2']);
+      const executionId = await startExecutionService.execute('success.sh', ['arg1', 'arg2']);
       expect(executionId).toBeDefined();
 
       const initialRecord = await db.get('SELECT * FROM executions WHERE id = ?', [executionId]);
@@ -128,7 +130,7 @@ describe('Executor Service', () => {
     });
 
     it('should execute a failing script and update status to failed', async () => {
-      const executionId = await startScriptExecution('fail.sh', []);
+      const executionId = await startExecutionService.execute('fail.sh', []);
       const finalRecord = await waitForExecution(db, executionId);
 
       expect(finalRecord.status).toBe('failed');
@@ -139,20 +141,20 @@ describe('Executor Service', () => {
     });
 
     it('should truncate stdout when output exceeds maximum log size', async () => {
-      const executionId = await startScriptExecution('huge-output.sh', []);
+      const executionId = await startExecutionService.execute('huge-output.sh', []);
       const finalRecord = await waitForExecution(db, executionId);
 
       expect(finalRecord.status).toBe('completed');
       expect(finalRecord.stdout.length).toBeGreaterThan(200000);
-      expect(finalRecord.stdout).toContain('[Logs truncados devido ao limite de tamanho]');
+      expect(finalRecord.stdout).toContain('[Logs truncated due to size limit]');
     });
 
     it('should update status to failed when child process fails to spawn', async () => {
-      const executionId = await startScriptExecution('no-exec.xyz', []);
+      const executionId = await startExecutionService.execute('no-exec.xyz', []);
       const finalRecord = await waitForExecution(db, executionId);
 
       expect(finalRecord.status).toBe('failed');
-      expect(finalRecord.stderr).toContain('Erro ao iniciar processo:');
+      expect(finalRecord.stderr).toContain('Failed to start process:');
       expect(finalRecord.finished_at).toBeDefined();
     });
   });
@@ -184,7 +186,7 @@ describe('Executor Service', () => {
         configurable: true
       });
 
-      await startScriptExecution('success.sh', ['hello']);
+      await startExecutionService.execute('success.sh', ['hello']);
 
       expect(spawnSpy).toHaveBeenCalledWith(
         'bash',
@@ -199,7 +201,7 @@ describe('Executor Service', () => {
         configurable: true
       });
 
-      await startScriptExecution('success.sh', ['hello']);
+      await startExecutionService.execute('success.sh', ['hello']);
 
       expect(spawnSpy).toHaveBeenCalledWith(
         '/bin/bash',
@@ -215,7 +217,7 @@ describe('Executor Service', () => {
 
       fs.writeFileSync(path.join(TEST_SCRIPTS_DIR, 'test.bat'), 'echo 123');
 
-      await startScriptExecution('test.bat', ['hello']);
+      await startExecutionService.execute('test.bat', ['hello']);
 
       expect(spawnSpy).toHaveBeenCalledWith(
         'cmd.exe',
@@ -232,7 +234,7 @@ describe('Executor Service', () => {
 
       fs.writeFileSync(path.join(TEST_SCRIPTS_DIR, 'test.cmd'), 'echo 123');
 
-      await startScriptExecution('test.cmd', ['hello']);
+      await startExecutionService.execute('test.cmd', ['hello']);
 
       expect(spawnSpy).toHaveBeenCalledWith(
         'cmd.exe',
@@ -249,7 +251,7 @@ describe('Executor Service', () => {
 
       fs.writeFileSync(path.join(TEST_SCRIPTS_DIR, 'test.ps1'), 'echo 123');
 
-      await startScriptExecution('test.ps1', ['hello']);
+      await startExecutionService.execute('test.ps1', ['hello']);
 
       expect(spawnSpy).toHaveBeenCalledWith(
         'powershell.exe',
@@ -266,7 +268,7 @@ describe('Executor Service', () => {
 
       fs.writeFileSync(path.join(TEST_SCRIPTS_DIR, 'test.xyz'), 'echo 123');
 
-      await startScriptExecution('test.xyz', ['hello']);
+      await startExecutionService.execute('test.xyz', ['hello']);
 
       expect(spawnSpy).toHaveBeenCalledWith(
         expect.stringContaining('test.xyz'),

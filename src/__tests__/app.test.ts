@@ -67,7 +67,7 @@ describe('API Endpoints (App Integration)', () => {
     );
 
     // 3. Start App Server on random port
-    const app = createApp();
+    const app = await createApp();
     server = app.server();
     await new Promise<void>((resolve) => {
       server.listen(0, () => {
@@ -177,7 +177,49 @@ describe('API Endpoints (App Integration)', () => {
       });
       expect(res.status).toBe(400);
       const body = await res.json() as { error: string };
-      expect(body.error).toContain('Parâmetro "script" é obrigatório');
+      expect(body.error).toContain('"script" is required');
+    });
+
+    it('should return 400 when script is an empty string', async () => {
+      const res = await fetch(`${baseUrl}/v1/executions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': validFullKey,
+        },
+        body: JSON.stringify({ script: '' }),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json() as { error: string };
+      expect(body.error).toContain('"script" is required');
+    });
+
+    it('should return 400 when script is a number (type coercion edge case)', async () => {
+      const res = await fetch(`${baseUrl}/v1/executions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': validFullKey,
+        },
+        body: JSON.stringify({ script: 123 }),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json() as { error: string };
+      expect(body.error).toContain('"script" is required');
+    });
+
+    it('should return 400 when script is a boolean (type coercion edge case)', async () => {
+      const res = await fetch(`${baseUrl}/v1/executions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': validFullKey,
+        },
+        body: JSON.stringify({ script: true }),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json() as { error: string };
+      expect(body.error).toContain('"script" is required');
     });
 
     it('should return 400 when arguments parameter is not string array', async () => {
@@ -191,7 +233,7 @@ describe('API Endpoints (App Integration)', () => {
       });
       expect(res.status).toBe(400);
       const body = await res.json() as { error: string };
-      expect(body.error).toContain('Parâmetro "arguments" deve ser um array de strings');
+      expect(body.error).toContain('"arguments" must be an array of strings');
     });
 
     it('should return 400 when script attempts directory traversal', async () => {
@@ -205,7 +247,21 @@ describe('API Endpoints (App Integration)', () => {
       });
       expect(res.status).toBe(400);
       const body = await res.json() as { error: string };
-      expect(body.error).toContain('Acesso negado: directory traversal');
+      expect(body.error).toContain('Access denied: directory traversal');
+    });
+
+    it('should return 400 when body is empty', async () => {
+      const res = await fetch(`${baseUrl}/v1/executions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': validFullKey,
+        },
+        body: JSON.stringify({}),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json() as { error: string };
+      expect(body.error).toContain('"script" is required');
     });
 
     it('should successfully trigger execution and return 202', async () => {
@@ -253,7 +309,7 @@ describe('API Endpoints (App Integration)', () => {
       });
       expect(res.status).toBe(404);
       const body = await res.json() as { error: string };
-      expect(body.error).toContain('Execução não encontrada');
+      expect(body.error).toContain('Execution not found');
     });
 
     it('should return execution details for a valid ID', async () => {
@@ -281,6 +337,42 @@ describe('API Endpoints (App Integration)', () => {
       expect(body.stderr).toBe('');
       expect(body.started_at).toBeDefined();
       expect(body.finished_at).toBeDefined();
+    });
+
+    it('should return 404 with proper JSON when execution id does not exist', async () => {
+      const nonExistentId = crypto.randomUUID();
+      const res = await fetch(`${baseUrl}/v1/executions/${nonExistentId}`, {
+        headers: { 'x-api-key': validFullKey },
+      });
+      expect(res.status).toBe(404);
+      expect(res.headers.get('content-type')).toContain('application/json');
+      const body = await res.json() as { error: string };
+      expect(body.error).toBeDefined();
+    });
+  });
+
+  describe('Unsupported HTTP Methods', () => {
+    it('should not respond to PUT /v1/executions', async () => {
+      const res = await fetch(`${baseUrl}/v1/executions`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': validFullKey,
+        },
+        body: JSON.stringify({ script: 'test-api.sh' }),
+      });
+      // vkrun returns 404 for unregistered routes
+      expect(res.status).not.toBe(200);
+      expect(res.status).not.toBe(202);
+    });
+
+    it('should not respond to DELETE /v1/executions', async () => {
+      const res = await fetch(`${baseUrl}/v1/executions`, {
+        method: 'DELETE',
+        headers: { 'x-api-key': validFullKey },
+      });
+      expect(res.status).not.toBe(200);
+      expect(res.status).not.toBe(202);
     });
   });
 });
