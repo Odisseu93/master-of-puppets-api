@@ -12,15 +12,18 @@ if (!fs.existsSync(logDir)) {
 
 const logFilePath = path.join(logDir, 'api.log');
 
+const isTest = env.NODE_ENV === 'test';
+
 // Setup pino to write to stdout and to the local log file
-const streams = [
-  { stream: process.stdout },
-  { stream: fs.createWriteStream(logFilePath, { flags: 'a' }) }
-];
+const streams = [];
+if (!isTest) {
+  streams.push({ stream: process.stdout });
+  streams.push({ stream: fs.createWriteStream(logFilePath, { flags: 'a' }) });
+}
 
 export const logger = pino(
   {
-    level: env.LOG_LEVEL,
+    level: isTest ? 'silent' : env.LOG_LEVEL,
     timestamp: pino.stdTimeFunctions.isoTime,
   },
   pino.multistream(streams)

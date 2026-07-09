@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import v from 'vkrun';
 import { Database } from 'sqlite';
 import { getDatabase, closeDatabase } from '../database';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.middleware';
+import { createAuthMiddleware, AuthenticatedRequest } from '../middleware/auth.middleware';
+import { ApiKeyRepository } from '../repositories/api-key.repository';
 
 // Use an in-memory SQLite database for testing
 process.env.DATABASE_PATH = ':memory:';
@@ -13,6 +14,8 @@ function hashKey(key: string): string {
 
 describe('Auth Middleware', () => {
   let db: Database;
+  let authMiddleware: (req: v.Request, res: v.Response, next: v.NextFunction) => Promise<void>;
+  
   const mockPrefix = 'sk_live_test1234';
   const mockSecret = 'supersecretkeyfortesting';
   const mockFullKey = `${mockPrefix}.${mockSecret}`;
@@ -20,6 +23,7 @@ describe('Auth Middleware', () => {
 
   beforeAll(async () => {
     db = await getDatabase();
+    authMiddleware = createAuthMiddleware(new ApiKeyRepository(db));
     
     // Clear table to avoid unique constraint errors during tests
     await db.run('DELETE FROM api_keys');

@@ -2,7 +2,9 @@ import v from 'vkrun';
 import { healthRouter } from './health.routes';
 import { executionRouter } from './execution.routes';
 
-export function registerRoutes(app: ReturnType<typeof v.App>) {
+import { Database } from 'sqlite';
+
+export function registerRoutes(app: ReturnType<typeof v.App>, db: Database) {
   app.use(healthRouter);
-  app.use(executionRouter);
+  app.use(executionRouter(db));
 }

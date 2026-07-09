@@ -3,10 +3,12 @@ import { requestLoggerMiddleware } from './middleware/logger.middleware';
 import { setupCors } from './middleware/cors.middleware';
 import { registerRoutes } from './routes';
 
+import { getDatabase } from './database';
+
 /**
  * Creates and configures the VkrunJS application.
  */
-export function createApp(): ReturnType<typeof v.App> {
+export async function createApp(): Promise<ReturnType<typeof v.App>> {
   const app = v.App();
 
   // Enable request body, query, and parameter parsing
@@ -22,8 +24,9 @@ export function createApp(): ReturnType<typeof v.App> {
   }
   app.use(corsMiddleware);
 
+  const db = await getDatabase();
   // Register all routes
-  registerRoutes(app);
+  registerRoutes(app, db);
 
   return app;
 }

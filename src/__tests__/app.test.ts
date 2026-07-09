@@ -67,7 +67,7 @@ describe('API Endpoints (App Integration)', () => {
     );
 
     // 3. Start App Server on random port
-    const app = createApp();
+    const app = await createApp();
     server = app.server();
     await new Promise<void>((resolve) => {
       server.listen(0, () => {

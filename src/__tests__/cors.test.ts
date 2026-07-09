@@ -14,7 +14,7 @@ describe('CORS Middleware', () => {
       process.env[key] = envVars[key];
     }
 
-    const app = createApp();
+    const app = await createApp();
     const server = app.server();
     servers.push(server);
 
