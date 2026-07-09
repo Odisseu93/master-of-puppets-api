@@ -1,7 +1,9 @@
 import v from 'vkrun';
-import crypto from 'crypto';
 import { getDatabase } from '../database';
 import { logger } from '../utils/logger';
+import { hashKey } from '../utils/crypto';
+import { sendJson } from '../utils/response';
+import { ApiKey } from '../types';
 
 export interface AuthenticatedRequest extends v.Request {
   apiKeyInfo?: {
@@ -9,13 +11,6 @@ export interface AuthenticatedRequest extends v.Request {
     name: string;
     prefix: string;
   };
-}
-
-/**
- * Computes SHA-256 hash of a string.
- */
-function hashKey(key: string): string {
-  return crypto.createHash('sha256').update(key).digest('hex');
 }
 
 /**
@@ -29,8 +24,7 @@ export async function authMiddleware(
   const apiKey = req.headers['x-api-key'];
 
   if (!apiKey || typeof apiKey !== 'string') {
-    res.setHeader('Content-Type', 'application/json');
-    res.status(401).send(JSON.stringify({ error: 'Unauthorized: API Key is missing' }));
+    sendJson(res, 401, { error: 'Unauthorized: API Key is missing' });
     return;
   }
 
@@ -38,7 +32,7 @@ export async function authMiddleware(
     const db = await getDatabase();
     const keyHash = hashKey(apiKey);
 
-    const activeKey = await db.get(
+    const activeKey = await db.get<ApiKey>(
       `SELECT * FROM api_keys 
        WHERE key_hash = ? 
          AND revoked_at IS NULL 
@@ -47,8 +41,7 @@ export async function authMiddleware(
     );
 
     if (!activeKey) {
-      res.setHeader('Content-Type', 'application/json');
-      res.status(401).send(JSON.stringify({ error: 'Unauthorized: Invalid or expired API Key' }));
+      sendJson(res, 401, { error: 'Unauthorized: Invalid or expired API Key' });
       return;
     }
 
@@ -62,7 +55,6 @@ export async function authMiddleware(
     next();
   } catch (error) {
     logger.error({ err: error }, 'Authentication middleware error');
-    res.setHeader('Content-Type', 'application/json');
-    res.status(500).send(JSON.stringify({ error: 'Internal Server Error' }));
+    sendJson(res, 500, { error: 'Internal Server Error' });
   }
 }

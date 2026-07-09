@@ -1,7 +1,8 @@
 import readline from 'readline/promises';
 import { stdin as input, stdout as output } from 'process';
-import crypto from 'crypto';
+import { randomBytes } from 'crypto';
 import { getDatabase } from '../database';
+import { hashKey } from '../utils/crypto';
 
 /**
  * Formats a date string or returns "Indefinite" if null.
@@ -9,13 +10,6 @@ import { getDatabase } from '../database';
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return 'Indefinite';
   return new Date(dateStr).toLocaleString('pt-BR');
-}
-
-/**
- * Computes SHA-256 hash of a string.
- */
-function hashKey(key: string): string {
-  return crypto.createHash('sha256').update(key).digest('hex');
 }
 
 /**
@@ -61,8 +55,8 @@ async function main() {
         }
 
         // Generate key
-        const prefix = `sk_live_${crypto.randomBytes(4).toString('hex')}`;
-        const secret = crypto.randomBytes(24).toString('hex');
+        const prefix = `sk_live_${randomBytes(4).toString('hex')}`;
+        const secret = randomBytes(24).toString('hex');
         const fullKey = `${prefix}.${secret}`;
         const keyHash = hashKey(fullKey);
 

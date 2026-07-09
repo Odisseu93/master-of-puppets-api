@@ -19,18 +19,18 @@ export function getSafeScriptPath(scriptName: string): string {
 
   // Directory Traversal guard
   if (!resolvedTarget.startsWith(resolvedBase)) {
-    throw new Error('Acesso negado: directory traversal detectado.');
+    throw new Error('Access denied: directory traversal detected.');
   }
 
   // Existence check
   if (!fs.existsSync(resolvedTarget)) {
-    throw new Error(`Script não encontrado: ${scriptName}`);
+    throw new Error(`Script not found: ${scriptName}`);
   }
 
   // Check if it's a file
   const stats = fs.statSync(resolvedTarget);
   if (!stats.isFile()) {
-    throw new Error('O caminho alvo não é um arquivo válido.');
+    throw new Error('The target path is not a valid file.');
   }
 
   return resolvedTarget;
@@ -57,7 +57,7 @@ export async function startScriptExecution(scriptName: string, args: string[]): 
 
   // Run in background (do not await spawn close)
   runProcessInBackground(executionId, scriptPath, args).catch(err => {
-    console.error(`Falha fatal na execução ${executionId}:`, err);
+    logger.error({ err, executionId }, `Fatal failure during execution ${executionId}`);
   });
 
   return executionId;
@@ -97,7 +97,7 @@ async function runProcessInBackground(
     if (stdoutAcc.length < MAX_LOG_SIZE) {
       stdoutAcc += chunk.toString();
       if (stdoutAcc.length >= MAX_LOG_SIZE) {
-        stdoutAcc = stdoutAcc.slice(0, MAX_LOG_SIZE) + '\n[Logs truncados devido ao limite de tamanho]';
+        stdoutAcc = stdoutAcc.slice(0, MAX_LOG_SIZE) + '\n[Logs truncated due to size limit]';
       }
     }
   });
@@ -106,7 +106,7 @@ async function runProcessInBackground(
     if (stderrAcc.length < MAX_LOG_SIZE) {
       stderrAcc += chunk.toString();
       if (stderrAcc.length >= MAX_LOG_SIZE) {
-        stderrAcc = stderrAcc.slice(0, MAX_LOG_SIZE) + '\n[Logs truncados devido ao limite de tamanho]';
+        stderrAcc = stderrAcc.slice(0, MAX_LOG_SIZE) + '\n[Logs truncated due to size limit]';
       }
     }
   });
@@ -116,8 +116,8 @@ async function runProcessInBackground(
   childProcess.on('error', async (error) => {
     hasError = true;
     const finishedAt = new Date().toISOString();
-    const errorMsg = `Erro ao iniciar processo: ${error.message}\n` + stderrAcc;
-    
+    const errorMsg = `Failed to start process: ${error.message}\n` + stderrAcc;
+
     try {
       await db.run(
         `UPDATE executions 
@@ -126,7 +126,7 @@ async function runProcessInBackground(
         [errorMsg.slice(0, MAX_LOG_SIZE), finishedAt, executionId]
       );
     } catch (dbErr) {
-      logger.warn({ dbErr, executionId }, 'Erro ao atualizar status de execução no banco (provavelmente fechado)');
+      logger.warn({ dbErr, executionId }, 'Failed to update execution status in database (connection likely closed)');
     }
   });
 
@@ -143,7 +143,7 @@ async function runProcessInBackground(
         [finalStatus, code, stdoutAcc, stderrAcc, finishedAt, executionId]
       );
     } catch (dbErr) {
-      logger.warn({ dbErr, executionId }, 'Erro ao salvar resultado da execução no banco (provavelmente fechado)');
+      logger.warn({ dbErr, executionId }, 'Failed to save execution result to database (connection likely closed)');
     }
   });
 }

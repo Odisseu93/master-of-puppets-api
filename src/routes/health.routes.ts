@@ -1,12 +1,12 @@
 import v from 'vkrun';
+import { sendJson } from '../utils/response';
 
 export const healthRouter = v.Router();
 
-healthRouter.get('/', (req: v.Request, res: v.Response) => {
+healthRouter.get('/', (_req: v.Request, res: v.Response) => {
   res.status(200).send('Hello World!');
 });
 
-healthRouter.get('/health', (req: v.Request, res: v.Response) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.status(200).send(JSON.stringify({ status: 'ok' }));
+healthRouter.get('/health', (_req: v.Request, res: v.Response) => {
+  sendJson(res, 200, { status: 'ok' });
 });

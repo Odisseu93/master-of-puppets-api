@@ -2,62 +2,58 @@ import v from 'vkrun';
 import { startScriptExecution } from '../services/executor.service';
 import { getDatabase } from '../database';
 import { logger } from '../utils/logger';
+import { sendJson } from '../utils/response';
+import { Execution } from '../types';
 
 export class ExecutionController {
   static async createExecution(req: v.Request, res: v.Response) {
-    res.setHeader('Content-Type', 'application/json');
-
     const { script, arguments: args } = req.body || {};
 
     if (!script || typeof script !== 'string') {
-      res.status(400).send(JSON.stringify({ error: 'Parâmetro "script" é obrigatório e deve ser uma string.' }));
+      sendJson(res, 400, { error: 'Parameter "script" is required and must be a non-empty string.' });
       return;
     }
 
     if (args !== undefined && (!Array.isArray(args) || !args.every(a => typeof a === 'string'))) {
-      res.status(400).send(JSON.stringify({ error: 'Parâmetro "arguments" deve ser um array de strings se fornecido.' }));
+      sendJson(res, 400, { error: 'Parameter "arguments" must be an array of strings if provided.' });
       return;
     }
 
     try {
       const executionId = await startScriptExecution(script, args || []);
-      res.status(202).send(JSON.stringify({
-        id: executionId,
-        status: 'running'
-      }));
+      sendJson(res, 202, { id: executionId, status: 'running' });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.error({ err: error, script, args }, 'Erro ao iniciar execução de script');
-      res.status(400).send(JSON.stringify({ error: errorMsg }));
+      logger.error({ err: error, script, args }, 'Failed to start script execution');
+      sendJson(res, 400, { error: errorMsg });
     }
   }
 
   static async getExecution(req: v.Request, res: v.Response) {
-    res.setHeader('Content-Type', 'application/json');
     const { id } = req.params as Record<string, string | undefined>;
 
     if (!id) {
-      res.status(400).send(JSON.stringify({ error: 'Parâmetro ID é obrigatório.' }));
+      sendJson(res, 400, { error: 'Parameter "id" is required.' });
       return;
     }
 
     try {
       const db = await getDatabase();
-      const execution = await db.get('SELECT * FROM executions WHERE id = ?', [id]);
+      const execution = await db.get<Execution>('SELECT * FROM executions WHERE id = ?', [id]);
 
       if (!execution) {
-        res.status(404).send(JSON.stringify({ error: 'Execução não encontrada.' }));
+        sendJson(res, 404, { error: 'Execution not found.' });
         return;
       }
 
-      let parsedArgs = [];
+      let parsedArgs: string[] = [];
       try {
         parsedArgs = JSON.parse(execution.arguments);
       } catch {
         parsedArgs = [];
       }
 
-      res.status(200).send(JSON.stringify({
+      sendJson(res, 200, {
         id: execution.id,
         script_name: execution.script_name,
         arguments: parsedArgs,
@@ -66,11 +62,11 @@ export class ExecutionController {
         stdout: execution.stdout,
         stderr: execution.stderr,
         started_at: execution.started_at,
-        finished_at: execution.finished_at
-      }));
+        finished_at: execution.finished_at,
+      });
     } catch (error) {
-      logger.error({ err: error, id }, 'Erro ao consultar status da execução');
-      res.status(500).send(JSON.stringify({ error: 'Erro interno ao processar a consulta.' }));
+      logger.error({ err: error, id }, 'Failed to retrieve execution status');
+      sendJson(res, 500, { error: 'Internal server error while processing the request.' });
     }
   }
 }
