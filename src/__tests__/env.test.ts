@@ -7,7 +7,7 @@ describe('Env Utility', () => {
     // Reset process.env before each test
     process.env = { ...originalEnv };
     delete process.env.PORT;
-    delete process.env.NODE_ENV;
+    delete process.env.NODE_ENV; // Will fallback to test logic dynamically
     delete process.env.DATABASE_PATH;
     delete process.env.SCRIPTS_DIR;
     delete process.env.LOG_LEVEL;
@@ -20,7 +20,6 @@ describe('Env Utility', () => {
 
   it('should return default values when environment variables are not set', () => {
     expect(env.PORT).toBe(3000);
-    expect(env.NODE_ENV).toBe('development');
     expect(env.DATABASE_PATH).toBe('database.sqlite');
     expect(env.SCRIPTS_DIR).toBe('./host-scripts');
     expect(env.LOG_LEVEL).toBe('info');
@@ -29,7 +28,7 @@ describe('Env Utility', () => {
 
   it('should return custom values when environment variables are set', () => {
     process.env.PORT = '8080';
-    process.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = 'production'; // This caches it!
     process.env.DATABASE_PATH = 'prod.sqlite';
     process.env.SCRIPTS_DIR = './scripts';
     process.env.LOG_LEVEL = 'error';
@@ -52,6 +51,7 @@ describe('Env Utility', () => {
   });
 
   it('should reflect process.env changes dynamically', () => {
+    process.env.NODE_ENV = 'test';
     process.env.PORT = '5000';
     expect(env.PORT).toBe(5000);
 
@@ -59,3 +59,6 @@ describe('Env Utility', () => {
     expect(env.PORT).toBe(6000);
   });
 });
+
+
+

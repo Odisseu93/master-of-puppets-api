@@ -12,12 +12,19 @@ export function requestLoggerMiddleware(
 ): void {
   const start = process.hrtime();
 
-  const ip = (req.headers['x-forwarded-for'] as string) || (req.socket ? req.socket.remoteAddress : 'unknown');
+  const reqWithSocket = req as unknown as { socket?: { remoteAddress?: string } };
+  const ip = (req.headers['x-forwarded-for'] as string) || (reqWithSocket.socket?.remoteAddress || 'unknown');
+
+  // Sanitize headers to prevent leaking sensitive information
+  const safeHeaders = { ...req.headers };
+  if (safeHeaders['x-api-key']) safeHeaders['x-api-key'] = '***';
+  if (safeHeaders['authorization']) safeHeaders['authorization'] = '***';
 
   // Log incoming request
   logger.info({
     method: req.method,
     url: req.url,
+    headers: safeHeaders,
     ip,
     userAgent: req.headers['user-agent'],
   }, `Request started: ${req.method} ${req.url}`);
@@ -39,3 +46,4 @@ export function requestLoggerMiddleware(
 
   next();
 }
+

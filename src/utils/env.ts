@@ -1,6 +1,6 @@
 import { schema, loadEnv, InferOut } from 'vkrun';
 
-// Load variables from `.env` file into process.env at module startup
+// Load initial variables from .env if present
 loadEnv();
 
 const envSchema = schema().object({
@@ -14,24 +14,38 @@ const envSchema = schema().object({
 
 export type Env = InferOut<typeof envSchema>;
 
-function getParsedEnv(): Env {
-  const rawPort = process.env.PORT;
-  const port = rawPort !== undefined && rawPort !== '' ? Number(rawPort) : undefined;
-  
-  const rawObj = {
-    PORT: port,
-    NODE_ENV: process.env.NODE_ENV || undefined,
-    DATABASE_PATH: process.env.DATABASE_PATH || undefined,
-    SCRIPTS_DIR: process.env.SCRIPTS_DIR || undefined,
-    LOG_LEVEL: process.env.LOG_LEVEL || undefined,
-    CORS_ORIGIN: process.env.CORS_ORIGIN || undefined,
-  };
-
-  return envSchema.parse(rawObj) as Env;
-}
+let cachedEnv: Env | null = null;
+let lastProcessEnvStr = '';
 
 export const env = new Proxy({} as Env, {
   get(_, prop: keyof Env) {
-    return getParsedEnv()[prop];
+    const currentEnvStr = JSON.stringify({
+      PORT: process.env.PORT,
+      NODE_ENV: process.env.NODE_ENV,
+      DATABASE_PATH: process.env.DATABASE_PATH,
+      SCRIPTS_DIR: process.env.SCRIPTS_DIR,
+      LOG_LEVEL: process.env.LOG_LEVEL,
+      CORS_ORIGIN: process.env.CORS_ORIGIN,
+    });
+
+    if (cachedEnv && currentEnvStr === lastProcessEnvStr) {
+      return cachedEnv[prop];
+    }
+
+    const rawPort = process.env.PORT;
+    const port = rawPort !== undefined && rawPort !== '' ? Number(rawPort) : undefined;
+    
+    const rawObj = {
+      PORT: port,
+      NODE_ENV: process.env.NODE_ENV || undefined,
+      DATABASE_PATH: process.env.DATABASE_PATH || undefined,
+      SCRIPTS_DIR: process.env.SCRIPTS_DIR || undefined,
+      LOG_LEVEL: process.env.LOG_LEVEL || undefined,
+      CORS_ORIGIN: process.env.CORS_ORIGIN || undefined,
+    };
+
+    cachedEnv = envSchema.parse(rawObj) as Env;
+    lastProcessEnvStr = currentEnvStr;
+    return cachedEnv[prop];
   }
 });
